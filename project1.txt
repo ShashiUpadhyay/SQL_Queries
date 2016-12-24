@@ -1,0 +1,185 @@
+SQL> start query
+SQL> select CNAME, TELEPHONE#  from customers where substr(TELEPHONE#,0,3) = '666' AND VISITS_MADE >= 3;
+
+CNAME           TELEPHONE#                                                      
+--------------- ------------                                                    
+Kathy           666-555-4567                                                    
+Chris           666-555-6745                                                    
+
+SQL> select c.cname, c.telephone# from customers c, purchases p where c.cid = p.cid and p.total_price >= 100 and floor(sysdate - c.LAST_VISIT_DATE) <= 25;
+
+CNAME           TELEPHONE#
+--------------- ------------
+Kathy           666-555-4567
+Kathy           666-555-4567
+Mike            999-555-5674
+Kathy           666-555-4567
+Connie          777-555-7654
+Joe             666-555-5746
+
+SQL> select p.PID as PID, p.PNAME as NAME from products P inner join purchases PUR ON P.PID = pur.PID INNER JOIN employees e ON pur.EID = e.EID and e.ENAME
+  2  = 'Peter' and p.ORIGINAL_PRICE * (1-p.DISCNT_RATE) < 10;
+
+PID  NAME                                                                       
+---- -----                                                            
+p005 chair                                                                      
+
+SQL> select * from purchases where PUR# IN (select PUR# from employees e, customers c, purchases pur, products p where pur.EID = e.EID and pur.CID = c.CID
+  2  and p.PID = pur.PID and pur.PID <> 'p002' and substr(e.TELEPHONE#,0,3) = substr(c.TELEPHONE#,0,3));
+
+      PUR# EID PID  CID         QTY PTIME     TOTAL_PRICE                       
+---------- --- ---- ---- ---------- --------- -----------                       
+    100002 e01 p003 c001          1 20-SEP-15       118.4                       
+    100004 e01 p005 c003          2 23-AUG-15       18.17                       
+    100009 e03 p001 c007          1 12-OCT-15        8.99                       
+    100011 e02 p004 c006         10 16-OCT-15         9.9                       
+
+SQL> select pur#,to_char(ptime,'Month DD,YYYY Day HH:MI:SS') as PTIME from purchases order by ptime asc;
+
+      PUR#       PTIME
+-----------------------------------------------------
+    100001       August    12,2015 Wednesday 10:34:30                                                                                                                            
+    100008       August    16,2015 Sunday    12:22:15                                                                                
+    100004       August    23,2015 Sunday    04:23:35                                            
+    100013       August    30,2015 Sunday    10:38:25                                                                
+    100003       October   08,2015 Thursday  09:30:50                                                                                                                        
+    100009       October   12,2015 Monday    02:44:23                                            
+    100006       October   12,2015 Monday    03:22:10                                                                                                                        
+    100011       October   16,2015 Friday    04:54:40                                                                                                                        
+    100014       October   18,2015 Sunday    10:54:06                                            
+    100005       October   20,2015 Tuesday   01:38:55                                                                                                                          
+    100007       September 10,2015 Thursday  05:12:20                                                                                                                        
+    100012       September 18,2015 Friday    03:56:38                                            
+    100010       September 19,2015 Saturday  05:32:37                                                                                                                        
+    100002       September 20,2015 Sunday    11:23:36                                            
+                                                                                
+14 rows selected.
+
+SQL> select e.eid from employees e, customers c where substr(e.TELEPHONE#,0,3) =  substr(c.TELEPHONE#,0,3) group by e.eid order by e.eid;
+
+EID                                                                             
+---                                                                             
+e01                                                                             
+e02                                                                             
+e03                                                                             
+e04                                                                             
+
+SQL> select distinct c.cname from customers c, products p, purchases pur where c.CID = pur.CID and p.PID <> 'p007' and
+  2  to_char(c.LAST_VISIT_DATE,'ddmmyyyy')-to_char(pur.PTIME,'ddmmyyyy') = 0;
+
+CNAME                                                                           
+---------------                                                                 
+Connie                                                                          
+Joe                                                                             
+John                                                                            
+Katie                                                                           
+Chris                                                                           
+Mike                                                                            
+Kathy                                                                           
+
+SQL> select ename from employees C where not exists (select A.eid from purchases A inner join products B on A.pid=B.pid where B.original_price	>= 200 and 2  C.eid=A.eid);
+
+ENAME                                                                           
+---------------                                                                 
+Mike                                                                            
+
+SQL> select distinct pur.CID from purchases pur, products p where p.ORIGINAL_PRICE > 200 and p.PID = pur.PID order by pur.CID;
+
+CID                                                                             
+----                                                                            
+c001                                                                            
+c003                                                                            
+c006                                                                            
+ 
+SQL> select e.EID, e.ENAME from employees e where e.EID IN (select pur.EID from customers c, purchases pur where c.visits_made >=3 and c.CID = pur.CID);
+
+EID ENAME                                                                       
+--- ---------------                                                             
+e01 Peter                                                                       
+e02 David                                                                       
+e03 Susan                                                                       
+ 
+SQL> select * from products where PID IN (select PID from purchases where CID = 'c001' and PID NOT IN (select PID from purchases where CID = 'c006'));
+
+PID  PNAME                  QOH QOH_THRESHOLD ORIGINAL_PRICE DISCNT_RATE        
+---- --------------- ---------- ------------- -------------- -----------
+p003 camera                  20             5            148          .2        
+p008 computer                 5             3            499          .3        
+
+SQL> select CID from purchases where PID IN (select PID from purchases where CID = 'c006') group by CID ORDER BY CID;
+
+CID                                                                             
+----                                                                            
+c001                                                                            
+c002                                                                            
+c006                                                                            
+
+SQL> select c.CNAME from customers c where c.CID IN (select pur.CID from purchases pur, products p where pur.PID = p.PID AND
+  2  PUR.QTY*p.ORIGINAL_PRICE-pur.TOTAL_PRICE > 100);
+
+CNAME                                                                           
+-----                                                                 
+Kathy                                                                           
+Chris                                                                           
+
+SQL> select c.CNAME from customers c where c.CID IN (select pur.CID from purchases pur where pur.TOTAL_PRICE = (select max(pur.TOTAL_PRICE) from purchases
+  2  pur));
+
+CNAME                                                                           
+---------------                                                                 
+Chris                                                                           
+
+SQL> select * from products where PID in (select PID from purchases group by PID having count(*) >=2) order by PID;
+
+PID  PNAME                  QOH QOH_THRESHOLD ORIGINAL_PRICE DISCNT_RATE        
+---- --------------- ---------- ------------- -------------- -----------        
+p002 TV                       6             5            249         .15        
+p004 pencil                 100            10            .99           0        
+p006 lamp                    10             6          19.95          .1        
+p008 computer                 5             3            499          .3        
+
+SQL> select pur#  from purchases where total_price >= ALL (select total_price from purchases where cid='c006' ) and cid != 'c006';
+
+      PUR#                                                                      
+----------                                                                      
+    100001                                                                      
+    100006                                                                      
+    100012                                                                      
+
+SQL> select A.cid,A.cname,count(Distinct(B.PID)) AS COUNT_DIFFERENT_PRODUCTS from customers A INNER JOIN  purchases B ON A.cid=B.cid INNER JOIN products C ON B.pid=C.pid group by A.cid,A.cname order by A.cid;
+
+CID  CNAME           COUNT_DIFFERENT_PRODUCTS                                   
+---- --------------- ------------------------                                   
+c001 Kathy                                  3                                   
+c002 John                                   1                                   
+c003 Chris                                  3                                   
+c004 Mike                                   1                                   
+c005 Mike                                   2                                   
+c006 Connie                                 2                                   
+c007 Katie                                  1                                   
+c008 Joe                                    1                                   
+
+SQL> select distinct A.cid,A.cname,SUM(B.total_price) AS TOTAL_AMOUNT_SPENT from customers A INNER JOIN  purchases B ON A.cid=B.cid group by A.cid,A.cname
+  2  having count(1) = (select max(count(cid)) from purchases group by cid);
+
+CID  CNAME           TOTAL_AMOUNT_SPENT                                         
+---- --------------- ------------------                                         
+c003 Chris                       752.68                                         
+c001 Kathy                       679.35                                         
+
+SQL> select P.PNAME,SUM(PUR.QTY) AS TOTAL_SOLD_UNITS  from products p, purchases pur where p.PID = pur.PID and p.PID IN (select PID from purchases where QTY
+  2  = (select MAX(QTY) from purchases)) group by PUR.PID, P.PNAME;
+
+PNAME           TOTAL_SOLD_UNITS                                                
+--------------- ----------------                                                
+pencil                        15                                                
+
+SQL> select * from (select A.cname,SUM(B.total_price) AS TOTAL_AMOUNT_SPENT from customers A INNER JOIN  purchases B ON A.cid=B.cid group by A.cname order
+  2  by SUM(B.total_price) desc)where rownum <= 2;
+
+CNAME           TOTAL_AMOUNT_SPENT                                              
+--------------- ------------------                                              
+Chris                       752.68                                              
+Kathy                       679.35                                              
+
+SQL> spool off;
